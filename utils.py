@@ -1,3 +1,4 @@
+#-*- coding:utf-8 -*-
 from itertools import combinations
 
 import numpy as np
@@ -10,7 +11,7 @@ def pdist(vectors):
     return distance_matrix
 
 
-class PairSelector:
+class PairSelector(object):
     """
     Implementation should return indices of positive pairs and negative pairs that will be passed to compute
     Contrastive Loss
@@ -74,7 +75,7 @@ class HardNegativePairSelector(PairSelector):
         return positive_pairs, top_negative_pairs
 
 
-class TripletSelector:
+class TripletSelector(object):
     """
     Implementation should return indices of anchors, positive and negative samples
     return np array of shape [N_triplets x 3]
@@ -192,3 +193,45 @@ def RandomNegativeTripletSelector(margin, cpu=False): return FunctionNegativeTri
 def SemihardNegativeTripletSelector(margin, cpu=False): return FunctionNegativeTripletSelector(margin=margin,
                                                                                   negative_selection_fn=lambda x: semihard_negative(x, margin),
                                                                                   cpu=cpu)
+
+
+
+                                                                                  
+# plot figure use t-SNE
+cuda = torch.cuda.is_available()
+import matplotlib as mpl
+mpl.use('Agg')
+import matplotlib.pyplot as plt
+from torch.autograd import Variable
+
+mnist_classes = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
+colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728',
+              '#9467bd', '#8c564b', '#e377c2', '#7f7f7f',
+              '#bcbd22', '#17becf']
+
+def plot_embeddings(embeddings, targets, save_tag = 'train', xlim=None, ylim=None):
+    plt.figure(figsize=(10,10))
+    for i in range(10):
+        inds = np.where(targets==i)[0]
+        plt.scatter(embeddings[inds,0], embeddings[inds,1], alpha=0.5, color=colors[i])
+    if xlim:
+        plt.xlim(xlim[0], xlim[1])
+    if ylim:
+        plt.ylim(ylim[0], ylim[1])
+    plt.legend(mnist_classes)
+    plt.savefig(save_tag+'-t-SNE.jpg')
+    plt.close('all')
+
+def extract_embeddings(dataloader, model):
+    model.eval()
+    embeddings = np.zeros((len(dataloader.dataset), 2))
+    labels = np.zeros(len(dataloader.dataset))
+    k = 0
+    for images, target in dataloader:
+        images = Variable(images, volatile=True)
+        if cuda:
+            images = images.cuda()
+        embeddings[k:k+len(images)] = model.get_embedding(images).data.cpu().numpy() # [:, 0:2]
+        labels[k:k+len(images)] = target.numpy()
+        k += len(images)
+    return embeddings, labels
