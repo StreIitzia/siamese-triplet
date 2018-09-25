@@ -36,8 +36,8 @@ cuda = torch.cuda.is_available()
 # device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 parser = argparse.ArgumentParser("""Image classifical!""")
-parser.add_argument('--path', type=str, default='./cifar10/',
-                    help="""image dir path default: './cifar10/'.""")
+parser.add_argument('--path', type=str, default='./data/cifar10/',
+                    help="""image dir path default: './data/cifar10/'.""")
 parser.add_argument('--epochs', type=int, default=50,
                     help="""Epoch default:50.""")
 parser.add_argument('--batch_size', type=int, default=256,

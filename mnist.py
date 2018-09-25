@@ -28,12 +28,12 @@ from trainer import fit
 
 ########## 载入数据
 mean, std = 0.1307, 0.3081
-train_dataset = MNIST('./mnist', train=True, download=False,
+train_dataset = MNIST('./data/mnist', train=True, download=False,
                              transform=transforms.Compose([
                                  transforms.ToTensor(),
                                  transforms.Normalize((mean,), (std,))
                              ]))
-test_dataset = MNIST('./mnist', train=False, download=False,
+test_dataset = MNIST('./data/mnist', train=False, download=False,
                             transform=transforms.Compose([
                                 transforms.ToTensor(),
                                 transforms.Normalize((mean,), (std,))
