@@ -1,10 +1,8 @@
 #-*- coding:utf-8 -*-
-
 from __future__ import division 
 from __future__ import absolute_import 
 from __future__ import with_statement
 
-from datasets import SiameseMNIST
 import torch
 import torch._utils
 cuda = torch.cuda.is_available()
@@ -23,7 +21,6 @@ from torchvision import transforms
 from torch.optim import lr_scheduler
 import torch.optim as optim
 from torch.autograd import Variable
-from trainer import fit
 
 
 ########## 载入数据
@@ -61,9 +58,9 @@ n_classes = 10
 
 
 # # Set up the network and training parameters
-# from networks import EmbeddingNet, ClassificationNet
-# from metrics import AccumulatedAccuracyMetric
-
+# from model.networks import EmbeddingNet, ClassificationNet
+# from model.metrics import AccumulatedAccuracyMetric
+# from model.trainer import fit
 # embedding_net = EmbeddingNet()
 # model = ClassificationNet(embedding_net, n_classes=n_classes)
 # if cuda:
@@ -82,7 +79,7 @@ n_classes = 10
 
 ############################################################                            
 ##################################### Method 02：SiameseNet 
-                           
+from data.datasets import SiameseMNIST                         
 siamese_train_dataset = SiameseMNIST(train_dataset) # Returns pairs of images and target same/different
 siamese_test_dataset = SiameseMNIST(test_dataset)
 batch_size = 128
@@ -105,10 +102,10 @@ siamese_test_loader = torch.utils.data.DataLoader(siamese_test_dataset, batch_si
 # raw_input()
 
 # Set up the network and training parameters
-from networks import EmbeddingNet, SiameseNet
-from metrics import AccumulatedAccuracyMetric
-from losses import ContrastiveLoss
-from trainer import fit
+from model.networks import EmbeddingNet, SiameseNet
+from model.metrics import AccumulatedAccuracyMetric
+from model.losses import ContrastiveLoss
+from model.trainer import fit
 
 from torch.optim import lr_scheduler
 import torch.optim as optim
@@ -128,7 +125,7 @@ log_interval = 100
 fit(siamese_train_loader, siamese_test_loader, model, loss_fn, optimizer, scheduler, n_epochs, cuda, log_interval)
 
 # 绘图
-from utils import extract_embeddings, plot_embeddings
+from utils.utils import extract_embeddings, plot_embeddings
 # Set up data loaders
 batch_size = 256
 kwargs = {'num_workers': 1, 'pin_memory': True} if cuda else {}
@@ -146,7 +143,7 @@ plot_embeddings(val_embeddings_cl, val_labels_cl, save_tag = 'test')
 # ######################################## Method 03：Triplet
 
 # # Set up data loaders
-# from datasets import TripletMNIST
+# from data.datasets import TripletMNIST
 
 # triplet_train_dataset = TripletMNIST(train_dataset) # Returns triplets of images
 # triplet_test_dataset = TripletMNIST(test_dataset)
@@ -167,8 +164,9 @@ plot_embeddings(val_embeddings_cl, val_labels_cl, save_tag = 'test')
 
 
 # # Set up the network and training parameters
-# from networks import EmbeddingNet, TripletNet
-# from losses import TripletLoss
+# from model.networks import EmbeddingNet, TripletNet
+# from model.losses import TripletLoss
+# from model.trainer import fit
 
 # margin = 1.
 # embedding_net = EmbeddingNet(1)
@@ -187,7 +185,7 @@ plot_embeddings(val_embeddings_cl, val_labels_cl, save_tag = 'test')
 
 
 # # 绘图
-# from utils import extract_embeddings, plot_embeddings
+# from utils.utils import extract_embeddings, plot_embeddings
 # # Set up data loaders
 # batch_size = 256
 # kwargs = {'num_workers': 1, 'pin_memory': True} if cuda else {}
@@ -202,7 +200,7 @@ plot_embeddings(val_embeddings_cl, val_labels_cl, save_tag = 'test')
 # ###############################################################
 # ################################### Method 04:pair selection
 
-# from datasets import BalancedBatchSampler
+# from data.datasets import BalancedBatchSampler
 # # We'll create mini batches by sampling labels that will be present in the mini batch and number of examples from each class
 # train_batch_sampler = BalancedBatchSampler(train_dataset, n_classes=10, n_samples=25)
 # test_batch_sampler = BalancedBatchSampler(test_dataset, n_classes=10, n_samples=25)
@@ -212,10 +210,11 @@ plot_embeddings(val_embeddings_cl, val_labels_cl, save_tag = 'test')
 # online_test_loader = torch.utils.data.DataLoader(test_dataset, batch_sampler=test_batch_sampler, **kwargs)
 
 # # Set up the network and training parameters
-# from networks import EmbeddingNet
-# from metrics import AccumulatedAccuracyMetric
-# from losses import OnlineContrastiveLoss
-# from utils import AllPositivePairSelector, HardNegativePairSelector # Strategies for selecting pairs within a minibatch
+# from model.trainer import fit
+# from model.networks import EmbeddingNet
+# from model.metrics import AccumulatedAccuracyMetric
+# from model.losses import OnlineContrastiveLoss
+# from utils.utils import AllPositivePairSelector, HardNegativePairSelector # Strategies for selecting pairs within a minibatch
 
 # margin = 1.
 # embedding_net = EmbeddingNet(1)
@@ -236,7 +235,7 @@ plot_embeddings(val_embeddings_cl, val_labels_cl, save_tag = 'test')
 # ##############################################################
 # ############################## Method 05:triplet selection
 
-# from datasets import BalancedBatchSampler
+# from data.datasets import BalancedBatchSampler
 
 # # We'll create mini batches by sampling labels that will be present in the mini batch and number of examples from each class
 # train_batch_sampler = BalancedBatchSampler(train_dataset, n_classes=10, n_samples=25)
@@ -247,11 +246,12 @@ plot_embeddings(val_embeddings_cl, val_labels_cl, save_tag = 'test')
 # online_test_loader = torch.utils.data.DataLoader(test_dataset, batch_sampler=test_batch_sampler, **kwargs)
 
 # # Set up the network and training parameters
+# from model.trainer import fit
 # from networks import EmbeddingNet
 # from losses import OnlineTripletLoss
 # # Strategies for selecting triplets within a minibatch
-# from utils import AllTripletSelector,HardestNegativeTripletSelector, RandomNegativeTripletSelector, SemihardNegativeTripletSelector 
-# from metrics import AverageNonzeroTripletsMetric, AccumulatedAccuracyMetric
+# from utils.utils import AllTripletSelector,HardestNegativeTripletSelector, RandomNegativeTripletSelector, SemihardNegativeTripletSelector 
+# from model.metrics import AverageNonzeroTripletsMetric, AccumulatedAccuracyMetric
 
 # margin = 1.
 # embedding_net = EmbeddingNet(1)
