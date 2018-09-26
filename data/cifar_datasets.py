@@ -98,8 +98,8 @@ class SiameseMNIST(Dataset):
             obj_label.append(self.test_labels[self.test_pairs[index][0]])
             obj_label.append(self.test_labels[self.test_pairs[index][1]])
 
-        img1 = Image.fromarray(img1.numpy(), mode='P')
-        img2 = Image.fromarray(img2.numpy(), mode='P')
+        img1 = Image.fromarray(img1.numpy(), mode='RGB')
+        img2 = Image.fromarray(img2.numpy(), mode='RGB')
         if self.transform is not None:
             img1 = self.transform(img1)
             img2 = self.transform(img2)
