@@ -1,4 +1,6 @@
-data/
-model/
+data/cifar10/
+data/mnist/
+data/data_loader/
+model/*.pth
 images/
 *.pyc
