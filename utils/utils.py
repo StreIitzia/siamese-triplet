@@ -231,7 +231,7 @@ def extract_embeddings(dataloader, model):
         images = Variable(images, volatile=True)
         if cuda:
             images = images.cuda()
-        embeddings[k:k+len(images)] = model.get_embedding(images).data.cpu().numpy() # [:, 0:2]
+        embeddings[k:k+len(images)] = model.get_embedding(images).data.cpu().numpy()[:, 0:2]
         labels[k:k+len(images)] = target.numpy()
         k += len(images)
     return embeddings, labels
