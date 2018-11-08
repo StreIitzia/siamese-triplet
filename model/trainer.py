@@ -47,7 +47,7 @@ def train_epoch(train_loader, model, loss_fn, optimizer, cuda, log_interval, met
     losses = []
     total_loss = 0
 
-    for batch_idx, (data, target) in enumerate(train_loader):
+    for batch_idx, (data, target, obj_l) in enumerate(train_loader):
         target = target if len(target) > 0 else None
         if not type(data) in (tuple, list):
             data = (data,)
@@ -109,7 +109,7 @@ def test_epoch(val_loader, model, loss_fn, cuda, metrics):
         metric.reset()
     model.eval()
     val_loss = 0
-    for batch_idx, (data, target) in enumerate(val_loader):
+    for batch_idx, (data, target, obj_l) in enumerate(val_loader):
         target = target if len(target) > 0 else None
         if not type(data) in (tuple, list):
             data = (data,)

@@ -102,7 +102,7 @@ class SiameseMNIST(Dataset):
         if self.transform is not None:
             img1 = self.transform(img1)
             img2 = self.transform(img2)
-        return (img1, img2), target  #, obj_label
+        return (img1, img2), target, obj_label
 
     def __len__(self):
         return len(self.mnist_dataset)
@@ -174,9 +174,9 @@ class TripletMNIST(Dataset):
             img3 = self.test_data[self.test_triplets[index][2]]
             
             # 记录图像对标签
-            obj_label.append(self.test_labels[self.test_pairs[index][0]])
-            obj_label.append(self.test_labels[self.test_pairs[index][1]])
-            obj_label.append(self.test_labels[self.test_pairs[index][2]])
+            obj_label.append(self.test_labels[self.test_triplets[index][0]])
+            obj_label.append(self.test_labels[self.test_triplets[index][1]])
+            obj_label.append(self.test_labels[self.test_triplets[index][2]])
 
         img1 = Image.fromarray(img1.numpy(), mode='L')
         img2 = Image.fromarray(img2.numpy(), mode='L')
@@ -185,7 +185,7 @@ class TripletMNIST(Dataset):
             img1 = self.transform(img1)
             img2 = self.transform(img2)
             img3 = self.transform(img3)
-        return (img1, img2, img3), []  #, obj_label
+        return (img1, img2, img3), [], obj_label
 
     def __len__(self):
         return len(self.mnist_dataset)

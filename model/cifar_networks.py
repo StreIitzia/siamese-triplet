@@ -2,9 +2,8 @@
 import torch.nn as nn
 import torch.nn.functional as F
 
-
 class EmbeddingNet(nn.Module):
-    def __init__(self, in_channel = 1):
+    def __init__(self, in_channel = 1, out_channel = 2):
         super(EmbeddingNet, self).__init__()
         self.convnet = nn.Sequential(nn.Conv2d(in_channel, 32, 3), nn.PReLU(),
                                      nn.Conv2d(32, 32, 3), nn.PReLU(),
@@ -17,7 +16,7 @@ class EmbeddingNet(nn.Module):
                                 nn.PReLU(),
                                 nn.Linear(256, 256),
                                 nn.PReLU(),
-                                nn.Linear(256, 10) #原始代码为了画图编码成2维，可以改成更高维（如：10维）
+                                nn.Linear(256, out_channel) #原始代码为了画图编码成2维，可以改成更高维
                                 )
 
     def forward(self, x):

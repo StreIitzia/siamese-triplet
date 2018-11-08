@@ -25,13 +25,16 @@ from torch.autograd import Variable
 
 ########## 载入数据
 mean, std = 0.1307, 0.3081
+
 train_dataset = MNIST('./data/mnist', train=True, download=False,
                              transform=transforms.Compose([
+                                 transforms.Resize(32), 
                                  transforms.ToTensor(),
                                  transforms.Normalize((mean,), (std,))
                              ]))
 test_dataset = MNIST('./data/mnist', train=False, download=False,
                             transform=transforms.Compose([
+                                transforms.Resize(32), 
                                 transforms.ToTensor(),
                                 transforms.Normalize((mean,), (std,))
                             ]))
@@ -41,7 +44,7 @@ n_classes = 10
 # # print len(train_dataset)  #60000  :  1x28x28
 
 
-############################################################
+# ###########################################################
 # # ############################# Method 01：Softmax
 # # Set up data loaders
 # batch_size = 256
@@ -74,7 +77,18 @@ n_classes = 10
                             
 # fit(train_loader, test_loader, model, loss_fn, optimizer, scheduler, n_epochs, cuda, log_interval, metrics=[AccumulatedAccuracyMetric()])                          
                             
-                            
+# # 绘图
+# from utils.utils import extract_embeddings, plot_embeddings
+# # Set up data loaders
+# batch_size = 256
+# kwargs = {'num_workers': 1, 'pin_memory': True} if cuda else {}
+# train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True, **kwargs)
+# test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False, **kwargs)
+# train_embeddings_cl, train_labels_cl = extract_embeddings(train_loader, model)
+# plot_embeddings(train_embeddings_cl, train_labels_cl, save_tag = 'train')
+# val_embeddings_cl, val_labels_cl = extract_embeddings(test_loader, model)
+# plot_embeddings(val_embeddings_cl, val_labels_cl, save_tag = 'test')                            
+
 
 
 ############################################################                            
@@ -122,7 +136,11 @@ scheduler = lr_scheduler.StepLR(optimizer, 8, gamma=0.1, last_epoch=-1)
 n_epochs = 20
 log_interval = 300
 
-fit(siamese_train_loader, siamese_test_loader, model, loss_fn, optimizer, scheduler, n_epochs, cuda, log_interval)
+fit(siamese_train_loader, siamese_test_loader, model, loss_fn, optimizer,
+           scheduler, n_epochs, cuda, log_interval, metrics=[AccumulatedAccuracyMetric()])
+
+
+
 
 # 绘图
 from utils.utils import extract_embeddings, plot_embeddings
@@ -136,7 +154,8 @@ plot_embeddings(train_embeddings_cl, train_labels_cl, save_tag = 'train')
 val_embeddings_cl, val_labels_cl = extract_embeddings(test_loader, model)
 plot_embeddings(val_embeddings_cl, val_labels_cl, save_tag = 'test')
 
-
+# 保存和加载整个模型
+torch.save(model, 'model.pkl')
 
 
 # ############################################################
@@ -247,8 +266,8 @@ plot_embeddings(val_embeddings_cl, val_labels_cl, save_tag = 'test')
 
 # # Set up the network and training parameters
 # from model.trainer import fit
-# from networks import EmbeddingNet
-# from losses import OnlineTripletLoss
+# from model.networks import EmbeddingNet
+# from model.losses import OnlineTripletLoss
 # # Strategies for selecting triplets within a minibatch
 # from utils.utils import AllTripletSelector,HardestNegativeTripletSelector, RandomNegativeTripletSelector, SemihardNegativeTripletSelector 
 # from model.metrics import AverageNonzeroTripletsMetric, AccumulatedAccuracyMetric
