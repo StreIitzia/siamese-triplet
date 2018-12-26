@@ -39,7 +39,7 @@ test_dataset = MNIST('./data/mnist', train=False, download=False,
                                 transforms.Normalize((mean,), (std,))
                             ]))
 n_classes = 10                            
-
+classes=('0', '1','2','3','4','5','6','7','8','9')
 # # print len(test_dataset)   #10000  :  1x28x28
 # # print len(train_dataset)  #60000  :  1x28x28
 
@@ -75,7 +75,8 @@ n_classes = 10
 # n_epochs = 20
 # log_interval = 50                            
                             
-# fit(train_loader, test_loader, model, loss_fn, optimizer, scheduler, n_epochs, cuda, log_interval, metrics=[AccumulatedAccuracyMetric()])                          
+# fit(train_loader, test_loader, model, loss_fn, optimizer, scheduler, n_epochs, cuda, log_interval,
+      # metrics=[AccumulatedAccuracyMetric()], obj_label=False)                          
                             
 # # 绘图
 # from utils.utils import extract_embeddings, plot_embeddings
@@ -91,71 +92,71 @@ n_classes = 10
 
 
 
-############################################################                            
-##################################### Method 02：SiameseNet 
-from data.datasets import SiameseMNIST                         
-siamese_train_dataset = SiameseMNIST(train_dataset) # Returns pairs of images and target same/different
-siamese_test_dataset = SiameseMNIST(test_dataset)
-batch_size = 128
-kwargs = {'num_workers': 1, 'pin_memory': True} if cuda else {}
-siamese_train_loader = torch.utils.data.DataLoader(siamese_train_dataset, batch_size=batch_size, shuffle=True, **kwargs)
-siamese_test_loader = torch.utils.data.DataLoader(siamese_test_dataset, batch_size=batch_size, shuffle=False, **kwargs)
+# ############################################################                            
+# ##################################### Method 02：SiameseNet 
+# from data.datasets import SiameseMNIST                         
+# siamese_train_dataset = SiameseMNIST(train_dataset) # Returns pairs of images and target same/different
+# siamese_test_dataset = SiameseMNIST(test_dataset)
+# batch_size = 128
+# kwargs = {'num_workers': 1, 'pin_memory': True} if cuda else {}
+# siamese_train_loader = torch.utils.data.DataLoader(siamese_train_dataset, batch_size=batch_size, shuffle=True, **kwargs)
+# siamese_test_loader = torch.utils.data.DataLoader(siamese_test_dataset, batch_size=batch_size, shuffle=False, **kwargs)
 
-# print '*'*20
-# print len(siamese_test_dataset)  #10000
-# print len(siamese_train_dataset) #60000
-# print len(siamese_test_loader)   #10000/128+1  :  [128x1x28x28, 128x1x28x28] 128 
-# print len(siamese_train_loader)  #60000/128+1  :  [128x1x28x28, 128x1x28x28] 128
+# # print '*'*20
+# # print len(siamese_test_dataset)  #10000
+# # print len(siamese_train_dataset) #60000
+# # print len(siamese_test_loader)   #10000/128+1  :  [128x1x28x28, 128x1x28x28] 128 
+# # print len(siamese_train_loader)  #60000/128+1  :  [128x1x28x28, 128x1x28x28] 128
 
-# for data, label, obj_label in siamese_test_loader:    # label为0或1,表示同一类或不同类, obj_label表示图像原始类别
-    # print label, obj_label[0], obj_label[1] 
-    # raw_input()
+# # for data, label, obj_label in siamese_test_loader:    # label为0或1,表示同一类或不同类, obj_label表示图像原始类别
+    # # print label, obj_label[0], obj_label[1] 
+    # # raw_input()
 
-# for data, label, obj_label in siamese_test_loader:
-    # print data[0].shape, data[1].shape, label.shape, obj_label[0].shape, obj_label[1].shape   
-# raw_input()
+# # for data, label, obj_label in siamese_test_loader:
+    # # print data[0].shape, data[1].shape, label.shape, obj_label[0].shape, obj_label[1].shape   
+# # raw_input()
 
-# Set up the network and training parameters
-from model.networks import EmbeddingNet, SiameseNet
-from model.metrics import AccumulatedAccuracyMetric
-from model.losses import ContrastiveLoss
-from model.trainer import fit
+# # Set up the network and training parameters
+# from model.networks import EmbeddingNet, SiameseNet
+# from model.metrics import AccumulatedAccuracyMetric
+# from model.losses import ContrastiveLoss
+# from model.trainer import fit
 
-from torch.optim import lr_scheduler
-import torch.optim as optim
+# from torch.optim import lr_scheduler
+# import torch.optim as optim
 
-margin = 1.
-embedding_net = EmbeddingNet(1)
-model = SiameseNet(embedding_net)
-if cuda:
-    model.cuda()
-loss_fn = ContrastiveLoss(margin)
-lr = 1e-3
-optimizer = optim.Adam(model.parameters(), lr=lr)
-scheduler = lr_scheduler.StepLR(optimizer, 8, gamma=0.1, last_epoch=-1)
-n_epochs = 20
-log_interval = 300
+# margin = 1.
+# embedding_net = EmbeddingNet(1)
+# model = SiameseNet(embedding_net)
+# if cuda:
+    # model.cuda()
+# loss_fn = ContrastiveLoss(margin)
+# lr = 1e-3
+# optimizer = optim.Adam(model.parameters(), lr=lr)
+# scheduler = lr_scheduler.StepLR(optimizer, 8, gamma=0.1, last_epoch=-1)
+# n_epochs = 20
+# log_interval = 300
 
-fit(siamese_train_loader, siamese_test_loader, model, loss_fn, optimizer,
-           scheduler, n_epochs, cuda, log_interval, metrics=[AccumulatedAccuracyMetric()])
-
-
+# fit(siamese_train_loader, siamese_test_loader, model, loss_fn, optimizer,
+           # scheduler, n_epochs, cuda, log_interval, metrics=[AccumulatedAccuracyMetric()], obj_label=True)
 
 
-# 绘图
-from utils.utils import extract_embeddings, plot_embeddings
-# Set up data loaders
-batch_size = 256
-kwargs = {'num_workers': 1, 'pin_memory': True} if cuda else {}
-train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True, **kwargs)
-test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False, **kwargs)
-train_embeddings_cl, train_labels_cl = extract_embeddings(train_loader, model)
-plot_embeddings(train_embeddings_cl, train_labels_cl, save_tag = 'train')
-val_embeddings_cl, val_labels_cl = extract_embeddings(test_loader, model)
-plot_embeddings(val_embeddings_cl, val_labels_cl, save_tag = 'test')
 
-# 保存和加载整个模型
-torch.save(model, 'model.pkl')
+
+# # 绘图
+# from utils.utils import extract_embeddings, plot_embeddings
+# # Set up data loaders
+# batch_size = 256
+# kwargs = {'num_workers': 1, 'pin_memory': True} if cuda else {}
+# train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True, **kwargs)
+# test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False, **kwargs)
+# train_embeddings_cl, train_labels_cl = extract_embeddings(train_loader, model)
+# plot_embeddings(train_embeddings_cl, train_labels_cl, save_tag = 'train')
+# val_embeddings_cl, val_labels_cl = extract_embeddings(test_loader, model)
+# plot_embeddings(val_embeddings_cl, val_labels_cl, save_tag = 'test')
+
+# # 保存和加载整个模型
+# torch.save(model, 'model.pkl')
 
 
 # ############################################################
@@ -286,6 +287,57 @@ torch.save(model, 'model.pkl')
 
 # fit(online_train_loader, online_test_loader, model, loss_fn, optimizer, scheduler, n_epochs, cuda, log_interval, 
 # metrics=[AverageNonzeroTripletsMetric(), AccumulatedAccuracyMetric()])
+
+
+
+##############################################################################
+#######################################Method07: Train ResNet ################
+# Set up data loaders
+batch_size = 128
+kwargs = {'num_workers': 1, 'pin_memory': True} if cuda else {}
+train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True, **kwargs)
+test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False, **kwargs)
+
+# Set up the network and training parameters
+from model.metrics import AccumulatedAccuracyMetric
+from model.trainer import fit
+
+from model import resnet
+num_features = 2
+res_model = resnet.resnet20(1, num_features = num_features, num_classes = 10)
+print(res_model)
+
+res_model.cuda()
+loss_fn = torch.nn.NLLLoss().cuda()
+lr = 1e-2
+optimizer = torch.optim.SGD(res_model.parameters(), lr, momentum=0.9, weight_decay=5e-4)   
+scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[100, 150])
+n_epochs = 100
+log_interval = 100                           
+fit(train_loader, test_loader, res_model, loss_fn, optimizer, scheduler, n_epochs, cuda, log_interval, metrics=[AccumulatedAccuracyMetric()])
+
+# 绘图
+from utils.utils import extract_embeddings, plot_embeddings
+
+linearWeights = res_model.state_dict()['linear.weight'].cpu().numpy()
+# linearBias = res_model.state_dict()['linear.bias'].cpu().numpy()
+linearBias = None
+
+# Set up data loaders
+batch_size = 256
+kwargs = {'num_workers': 1, 'pin_memory': True} if cuda else {}
+train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True, **kwargs)
+test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False, **kwargs)
+train_embeddings_cl, train_labels_cl = extract_embeddings(train_loader, res_model)
+save_tag = 'test-mnist-resnet-' + str(num_features) + '-'
+plot_embeddings(train_embeddings_cl, train_labels_cl, linearWeights, linearBias, classes=classes, save_tag = save_tag)
+val_embeddings_cl, val_labels_cl = extract_embeddings(test_loader, res_model)
+save_tag = 'train-mnist-resnet-' + str(num_features) + '-'
+plot_embeddings(val_embeddings_cl, val_labels_cl, linearWeights, linearBias, classes=classes, save_tag = save_tag)
+
+# Save model
+torch.save(res_model.state_dict(), './model/mnist_resnet20_'+str(num_features)+'_dict.pkl')
+
 
 
 

@@ -2,7 +2,7 @@ from torch.autograd import Variable
 import numpy as np
 from utils.utils import modelsize
 
-def fit(train_loader, val_loader, model, loss_fn, optimizer, scheduler, n_epochs, cuda, log_interval, metrics=[],
+def fitA(train_loader, val_loader, model, loss_fn, optimizer, scheduler, n_epochs, cuda, log_interval, metrics=[],
         start_epoch=0, obj_label=False):
     """
     Loaders, model, loss function and metrics should work together for a given task,
@@ -57,7 +57,7 @@ def train_epoch(train_loader, model, loss_fn, optimizer, cuda, log_interval, met
             data = tuple(Variable(d) for d in data)
 
             optimizer.zero_grad()
-            outputs = model(*data)
+            outputs = model(*data, target=target)
             
             # modelsize(model, *data)
             # # print(outputs)
@@ -105,7 +105,7 @@ def train_epoch(train_loader, model, loss_fn, optimizer, cuda, log_interval, met
             data = tuple(Variable(d) for d in data)
 
             optimizer.zero_grad()
-            outputs = model(*data)
+            outputs = model(*data, target=target)
 
             if type(outputs) not in (tuple, list):
                 outputs = (outputs,)
@@ -156,7 +156,7 @@ def test_epoch(val_loader, model, loss_fn, cuda, metrics, obj_label):
                     target = target.cuda()
             data = tuple(Variable(d, volatile=True) for d in data)
 
-            outputs = model(*data)
+            outputs = model(*data, target=target)
 
             if type(outputs) not in (tuple, list):
                 outputs = (outputs,)
@@ -183,7 +183,7 @@ def test_epoch(val_loader, model, loss_fn, cuda, metrics, obj_label):
                     target = target.cuda()
             data = tuple(Variable(d, volatile=True) for d in data)
 
-            outputs = model(*data)
+            outputs = model(*data, target=target)
 
             if type(outputs) not in (tuple, list):
                 outputs = (outputs,)

@@ -204,22 +204,30 @@ mpl.use('Agg')
 import matplotlib.pyplot as plt
 from torch.autograd import Variable
 
-mnist_classes = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
 colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728',
               '#9467bd', '#8c564b', '#e377c2', '#7f7f7f',
               '#bcbd22', '#17becf']
 
-def plot_embeddings(embeddings, targets, save_tag = 'train', xlim=None, ylim=None):
+def plot_embeddings(embeddings, targets, W, b, classes, save_tag = 'train', xlim=None, ylim=None):
     plt.figure(figsize=(10,10))
-    for i in range(10):
+    for i in range(len(classes)):
         inds = np.where(targets==i)[0]
         plt.scatter(embeddings[inds,0], embeddings[inds,1], alpha=0.5, color=colors[i])
+        x = np.linspace(-3,3)
+        if b is None:
+            y = -1.0*(W[i][0]*x)/W[i][1]
+            save_tag = save_tag + 'withoutB'
+        else:
+            y = -1.0*(W[i][0]*x+b[i])/W[i][1]
+            save_tag = save_tag + 'withB'
+        plt.plot(y, x, alpha=0.7, color=colors[i])
+    plt.scatter(0, 0, color='red')
     if xlim:
         plt.xlim(xlim[0], xlim[1])
     if ylim:
         plt.ylim(ylim[0], ylim[1])
-    plt.legend(mnist_classes)
-    plt.savefig(save_tag+'-t-SNE.jpg')
+    plt.legend(classes)
+    plt.savefig(save_tag+'.jpg')
     plt.close('all')
 
 def extract_embeddings(dataloader, model):
@@ -235,3 +243,65 @@ def extract_embeddings(dataloader, model):
         labels[k:k+len(images)] = target.numpy()
         k += len(images)
     return embeddings, labels
+    
+    
+import code
+def printData(data, type='', only_shape=False):
+    print '*'*20 + type + '*'*20
+    if type == 'normal' or type == 'softmax':
+        for d, label in data:
+            print d.shape, label.shape
+    elif type == 'siamese':
+        for d, label, obj_l in data:
+            if only_shape:
+                print d[0].shape, d[1].shape, label, [obj_l[0], obj_l[1]]
+            else:
+                print d[0].shape, d[1].shape, torch.stack([label, obj_l[0], obj_l[1]], dim=1)
+    elif type == 'triplet':
+        for d, label, obj_l in data:
+            print d[0].shape, d[1].shape, d[2].shape, label.shape, obj_l[0].shape, obj_l[1].shape, obj_l[2].shape
+    
+    print len(data)
+    raw_input() #等待输入，用于暂停程序，回车继续运行
+    
+    # 控制台交互，在命令行打印想要输出的结果，ctrl+D继续、exit()退出
+    # code.interact(local=locals())
+
+
+
+def modelsize(model, input, type_size=4):
+    # 模型显存占用监测函数
+    # model：输入的模型
+    # input：实际中需要输入的Tensor变量
+    # type_size 默认为 4 默认类型为 float32 
+    para = sum([np.prod(list(p.size())) for p in model.parameters()])
+    print('Model {} : params: {:4f}M'.format(model._get_name(), para * type_size / 1000 / 1000))
+ 
+    input_ = input.clone()
+    input_.requires_grad_(requires_grad=False)
+ 
+    mods = list(model.modules())
+    out_sizes = []
+ 
+    for i in range(1, len(mods)):
+        m = mods[i]
+        if isinstance(m, torch.nn.ReLU):
+            if m.inplace:
+                continue
+        out = m(input_)
+        out_sizes.append(np.array(out.size()))
+        input_ = out
+ 
+    total_nums = 0
+    for i in range(len(out_sizes)):
+        s = out_sizes[i]
+        nums = np.prod(np.array(s))
+        total_nums += nums
+ 
+ 
+    print('Model {} : intermedite variables: {:3f} M (without backward)'
+          .format(model._get_name(), total_nums * type_size / 1000 / 1000))
+    print('Model {} : intermedite variables: {:3f} M (with backward)'
+          .format(model._get_name(), total_nums * type_size*2 / 1000 / 1000))
+
+    

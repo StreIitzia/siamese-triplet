@@ -10,7 +10,7 @@ class EmbeddingNet(nn.Module):
                                      nn.MaxPool2d(2, stride=2),#14*14
                                      nn.Conv2d(32, 64, 3), nn.PReLU(),#12*12
                                      nn.MaxPool2d(2, stride=2),#6*6
-                                     nn.Conv2d(32, 64, 3), nn.PReLU()#4*4
+                                     nn.Conv2d(64, 64, 3), nn.PReLU()#4*4
                                      )
 
         self.fc = nn.Sequential(nn.Linear(64 * 4 * 4, 256),
@@ -64,7 +64,7 @@ class ClassificationNet(nn.Module):
 class SiameseNet(nn.Module):
     def __init__(self, embedding_net):
         super(SiameseNet, self).__init__()
-        self.embedding_net = embedding_net
+        self.embedding_net = embedding_net.get_embedding
 
     def forward(self, x1, x2):
         output1 = self.embedding_net(x1)
@@ -78,7 +78,7 @@ class SiameseNet(nn.Module):
 class TripletNet(nn.Module):
     def __init__(self, embedding_net):
         super(TripletNet, self).__init__()
-        self.embedding_net = embedding_net
+        self.embedding_net = embedding_net.get_embedding
 
     def forward(self, x1, x2, x3):
         output1 = self.embedding_net(x1)

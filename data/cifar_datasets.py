@@ -121,15 +121,15 @@ class TripletMNIST(Dataset):
         self.transform = self.mnist_dataset.transform
 
         if self.train:
-            self.train_labels = self.mnist_dataset.train_labels
-            self.train_data = self.mnist_dataset.train_data
+            self.train_labels = torch.Tensor(self.mnist_dataset.train_labels)
+            self.train_data = torch.Tensor(self.mnist_dataset.train_data)
             self.labels_set = set(self.train_labels.numpy())
             self.label_to_indices = {label: np.where(self.train_labels.numpy() == label)[0]
                                      for label in self.labels_set}
 
         else:
-            self.test_labels = self.mnist_dataset.test_labels
-            self.test_data = self.mnist_dataset.test_data
+            self.test_labels = torch.Tensor(self.mnist_dataset.test_labels)
+            self.test_data = torch.Tensor(self.mnist_dataset.test_data)
             # generate fixed triplets for testing
             self.labels_set = set(self.test_labels.numpy())
             self.label_to_indices = {label: np.where(self.test_labels.numpy() == label)[0]
@@ -175,9 +175,9 @@ class TripletMNIST(Dataset):
             img3 = self.test_data[self.test_triplets[index][2]]
             
             # 记录图像对标签
-            obj_label.append(self.test_labels[self.test_pairs[index][0]])
-            obj_label.append(self.test_labels[self.test_pairs[index][1]])
-            obj_label.append(self.test_labels[self.test_pairs[index][2]])
+            obj_label.append(self.test_labels[self.test_triplets[index][0]])
+            obj_label.append(self.test_labels[self.test_triplets[index][1]])
+            obj_label.append(self.test_labels[self.test_triplets[index][2]])
 
         img1 = Image.fromarray(img1.numpy(), mode='RGB')
         img2 = Image.fromarray(img2.numpy(), mode='RGB')
@@ -200,9 +200,9 @@ class BalancedBatchSampler(BatchSampler):
 
     def __init__(self, dataset, n_classes, n_samples):
         if dataset.train:
-            self.labels = dataset.train_labels
+            self.labels = torch.Tensor(dataset.train_labels)
         else:
-            self.labels = dataset.test_labels
+            self.labels = torch.Tensor(dataset.test_labels)
         self.labels_set = list(set(self.labels.numpy()))
         self.label_to_indices = {label: np.where(self.labels.numpy() == label)[0]
                                  for label in self.labels_set}

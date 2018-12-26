@@ -8,7 +8,7 @@ import time
 import argparse
 import torch
 import torch._utils
-cuda = torch.cuda.is_available()
+
 try:
     torch._utils._rebuild_tensor_v2
 except AttributeError:
@@ -29,6 +29,7 @@ from torch.autograd import Variable
 # Device configuration
 cuda = torch.cuda.is_available()
 # device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"                     
 
 parser = argparse.ArgumentParser("""Image classifical!""")
 parser.add_argument('--path', type=str, default='./data/cifar10/',
@@ -54,9 +55,9 @@ if not os.path.exists(args.model_path):
     os.makedirs(args.model_path)
 
 transform = transforms.Compose([
-    transforms.Resize(28),  # 将图像转化为32 * 32
-    # transforms.RandomHorizontalFlip(p=0.75),  # 有0.75的几率随机旋转
-    # transforms.RandomCrop(24),  # 从图像中裁剪一个24 * 24的
+    transforms.RandomHorizontalFlip(),
+    transforms.RandomCrop(32, 4),
+    # transforms.RandomHorizontalFlip(p=0.50),  # 有0.75的几率随机旋转
     # transforms.ColorJitter(brightness=1, contrast=2, saturation=3, hue=0),  # 给图像增加一些随机的光照
     transforms.ToTensor(),  # 将numpy数据类型转化为Tensor
     transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])  # 归一化
@@ -75,50 +76,50 @@ test_dataset = torchvision.datasets.CIFAR10(root=args.path,
                                              download=True,
                                              train=False)
                                            
-###########################################################
-# ############################# Method 01：Softmax
-# Set up data loaders
-batch_size = 256
-kwargs = {'num_workers': 1, 'pin_memory': True} if cuda else {}
-train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True, **kwargs)
-test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False, **kwargs)
+# ###########################################################
+# # ############################# Method 01：Softmax
+# # Set up data loaders
+# batch_size = 256
+# kwargs = {'num_workers': 1, 'pin_memory': True} if cuda else {}
+# train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True, **kwargs)
+# test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False, **kwargs)
 
-# Set up the network and training parameters
-from model.cifar_networks import EmbeddingNet, ClassificationNet
-from model.metrics import AccumulatedAccuracyMetric
-from model.trainer import fit
+# # Set up the network and training parameters
+# from model.cifar_networks import EmbeddingNet, ClassificationNet
+# from model.metrics import AccumulatedAccuracyMetric
+# from model.trainer import fit
 
-embedding_net = EmbeddingNet(3, 64)
-model = ClassificationNet(embedding_net, n_classes=10)
-if cuda:
-    model.cuda()
-loss_fn = torch.nn.NLLLoss()
-lr = 1e-2
-optimizer = optim.Adam(model.parameters(), lr=lr)
-scheduler = lr_scheduler.StepLR(optimizer, 8, gamma=0.1, last_epoch=-1)
-n_epochs = 20
-log_interval = 100                           
+# embedding_net = EmbeddingNet(in_channel=3, out_num=2)
+# model = ClassificationNet(embedding_net, input_num=2, n_classes=10)
+# if cuda:
+    # model.cuda()
+# loss_fn = torch.nn.NLLLoss()
+# lr = 1e-2
+# optimizer = optim.Adam(model.parameters(), lr=lr)
+# scheduler = lr_scheduler.StepLR(optimizer, 8, gamma=0.1, last_epoch=-1)
+# n_epochs = 20
+# log_interval = 100                           
                             
-fit(train_loader, test_loader, model, loss_fn, optimizer, scheduler, n_epochs, cuda, log_interval, metrics=[AccumulatedAccuracyMetric()])                          
+# fit(train_loader, test_loader, model, loss_fn, optimizer, scheduler, n_epochs, cuda, log_interval, metrics=[AccumulatedAccuracyMetric()])                          
                                                                          
-# Save the model checkpoint
-torch.save(model, args.model_path + args.model_name)
-print("Model save to {}.".format(args.model_path + args.model_name))
+# # Save the model checkpoint
+# torch.save(model, args.model_path + args.model_name)
+# print("Model save to {}.".format(args.model_path + args.model_name))
 
-# 绘图
-from utils.utils import extract_embeddings, plot_embeddings
-# Set up data loaders
-batch_size = 256
-kwargs = {'num_workers': 1, 'pin_memory': True} if cuda else {}
-train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True, **kwargs)
-test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False, **kwargs)
-train_embeddings_cl, train_labels_cl = extract_embeddings(train_loader, model)
-plot_embeddings(train_embeddings_cl, train_labels_cl, save_tag = 'train')
-val_embeddings_cl, val_labels_cl = extract_embeddings(test_loader, model)
-plot_embeddings(val_embeddings_cl, val_labels_cl, save_tag = 'test')
+# # 绘图
+# from utils.utils import extract_embeddings, plot_embeddings
+# # Set up data loaders
+# batch_size = 256
+# kwargs = {'num_workers': 1, 'pin_memory': True} if cuda else {}
+# train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True, **kwargs)
+# test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False, **kwargs)
+# train_embeddings_cl, train_labels_cl = extract_embeddings(train_loader, model)
+# plot_embeddings(train_embeddings_cl, train_labels_cl, classes, save_tag = 'train')
+# val_embeddings_cl, val_labels_cl = extract_embeddings(test_loader, model)
+# plot_embeddings(val_embeddings_cl, val_labels_cl, classes, save_tag = 'test')
 
-############################################################                            
-##################################### Method 02：SiameseNet 
+# ###########################################################                            
+# #################################### Method 02：SiameseNet 
 # from data.cifar_datasets import SiameseMNIST                           
 # siamese_train_dataset = SiameseMNIST(train_dataset) # Returns pairs of images and target same/different
 # siamese_test_dataset = SiameseMNIST(test_dataset)
@@ -126,19 +127,6 @@ plot_embeddings(val_embeddings_cl, val_labels_cl, save_tag = 'test')
 # kwargs = {'num_workers': 1, 'pin_memory': True} if cuda else {}
 # siamese_train_loader = torch.utils.data.DataLoader(siamese_train_dataset, batch_size=batch_size, shuffle=True, **kwargs)
 # siamese_test_loader = torch.utils.data.DataLoader(siamese_test_dataset, batch_size=batch_size, shuffle=False, **kwargs)
-
-# # print '*'*20
-# # print len(siamese_test_dataset)  #10000
-# # print len(siamese_train_dataset) #60000
-# # print len(siamese_test_loader)   #10000/128+1 
-# # print len(siamese_train_loader)  #60000/128+1  
-
-# # for data, label in siamese_test_loader: 
-    # # print label
-    # # print data[0]
-
-# # raw_input()
-
 
 # # Set up the network and training parameters
 # from model.cifar_networks import EmbeddingNet, SiameseNet
@@ -150,7 +138,7 @@ plot_embeddings(val_embeddings_cl, val_labels_cl, save_tag = 'test')
 # import torch.optim as optim
 
 # margin = 1.
-# embedding_net = EmbeddingNet(3)
+# embedding_net = EmbeddingNet(in_channel=3, out_num=32)
 # model = SiameseNet(embedding_net)
 # if cuda:
     # model.cuda()
@@ -158,7 +146,7 @@ plot_embeddings(val_embeddings_cl, val_labels_cl, save_tag = 'test')
 # lr = 1e-3
 # optimizer = optim.Adam(model.parameters(), lr=lr)
 # scheduler = lr_scheduler.StepLR(optimizer, 8, gamma=0.1, last_epoch=-1)
-# n_epochs = 200
+# n_epochs = 30
 # log_interval = 100
 
 # fit(siamese_train_loader, siamese_test_loader, model, loss_fn, optimizer, scheduler, n_epochs, cuda, log_interval)
@@ -171,10 +159,9 @@ plot_embeddings(val_embeddings_cl, val_labels_cl, save_tag = 'test')
 # train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True, **kwargs)
 # test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False, **kwargs)
 # train_embeddings_cl, train_labels_cl = extract_embeddings(train_loader, model)
-# plot_embeddings(train_embeddings_cl, train_labels_cl, save_tag = 'train')
+# plot_embeddings(train_embeddings_cl, train_labels_cl, classes, save_tag = 'train')
 # val_embeddings_cl, val_labels_cl = extract_embeddings(test_loader, model)
-# plot_embeddings(val_embeddings_cl, val_labels_cl, save_tag = 'test')
-
+# plot_embeddings(val_embeddings_cl, val_labels_cl, classes, save_tag = 'test')
 
 
 
@@ -191,24 +178,13 @@ plot_embeddings(val_embeddings_cl, val_labels_cl, save_tag = 'test')
 # triplet_train_loader = torch.utils.data.DataLoader(triplet_train_dataset, batch_size=batch_size, shuffle=True, **kwargs)
 # triplet_test_loader = torch.utils.data.DataLoader(triplet_test_dataset, batch_size=batch_size, shuffle=False, **kwargs)
 
-
-# # print '*'*20
-# # print len(triplet_test_dataset)  #10000
-# # print len(triplet_train_dataset) #60000
-# # print len(triplet_test_loader)   #10000/128+1  :  (128L, 1L, 28L, 28L) (128L, 1L, 28L, 28L) (128L, 1L, 28L, 28L) []
-# # print len(triplet_train_loader)  #60000/128+1  :  (128L, 1L, 28L, 28L) (128L, 1L, 28L, 28L) (128L, 1L, 28L, 28L) []
-# # for data, label in triplet_test_loader:
-    # # print data[0].shape, data[1].shape, data[2].shape, label  # label为空, 三张图片分别为Anchor、Positive、Negative
-# # raw_input()
-
-
 # # Set up the network and training parameters
 # from model.cifar_networks import EmbeddingNet, TripletNet
 # from model.losses import TripletLoss
 # from model.trainer import fit
 
-# margin = 1.
-# embedding_net = EmbeddingNet(3)
+# margin = 1.0
+# embedding_net = EmbeddingNet(in_channel=3, out_num=2)
 # model = TripletNet(embedding_net)
 # if cuda:
     # model.cuda()
@@ -216,11 +192,10 @@ plot_embeddings(val_embeddings_cl, val_labels_cl, save_tag = 'test')
 # lr = 1e-3
 # optimizer = optim.Adam(model.parameters(), lr=lr)
 # scheduler = lr_scheduler.StepLR(optimizer, 8, gamma=0.1, last_epoch=-1)
-# n_epochs = 20
+# n_epochs = 200
 # log_interval = 100
 
 # fit(triplet_train_loader, triplet_test_loader, model, loss_fn, optimizer, scheduler, n_epochs, cuda, log_interval)
-
 
 
 # # 绘图
@@ -231,15 +206,14 @@ plot_embeddings(val_embeddings_cl, val_labels_cl, save_tag = 'test')
 # train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True, **kwargs)
 # test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False, **kwargs)
 # train_embeddings_cl, train_labels_cl = extract_embeddings(train_loader, model)
-# plot_embeddings(train_embeddings_cl, train_labels_cl, save_tag = 'tri_train')
+# plot_embeddings(train_embeddings_cl, train_labels_cl, classes, save_tag = 'train')
 # val_embeddings_cl, val_labels_cl = extract_embeddings(test_loader, model)
-# plot_embeddings(val_embeddings_cl, val_labels_cl, save_tag = 'tri_test')
+# plot_embeddings(val_embeddings_cl, val_labels_cl, classes, save_tag = 'test')
 
 
 # ###############################################################
 # ################################### Method 04:pair selection
-
-# from data.datasets import BalancedBatchSampler
+# from data.cifar_datasets import BalancedBatchSampler
 # # We'll create mini batches by sampling labels that will be present in the mini batch and number of examples from each class
 # train_batch_sampler = BalancedBatchSampler(train_dataset, n_classes=10, n_samples=25)
 # test_batch_sampler = BalancedBatchSampler(test_dataset, n_classes=10, n_samples=25)
@@ -251,12 +225,11 @@ plot_embeddings(val_embeddings_cl, val_labels_cl, save_tag = 'test')
 # # Set up the network and training parameters
 # from model.trainer import fit
 # from model.cifar_networks import EmbeddingNet
-# from model.metrics import AccumulatedAccuracyMetric
 # from model.losses import OnlineContrastiveLoss
 # from utils.utils import AllPositivePairSelector, HardNegativePairSelector # Strategies for selecting pairs within a minibatch
 
 # margin = 1.
-# embedding_net = EmbeddingNet(3)
+# embedding_net = EmbeddingNet(in_channel=3, out_num=2)
 # model = embedding_net
 # if cuda:
     # model.cuda()
@@ -264,17 +237,28 @@ plot_embeddings(val_embeddings_cl, val_labels_cl, save_tag = 'test')
 # lr = 1e-3
 # optimizer = optim.Adam(model.parameters(), lr=lr)
 # scheduler = lr_scheduler.StepLR(optimizer, 8, gamma=0.1, last_epoch=-1)
-# n_epochs = 20
-# log_interval = 50
+# n_epochs = 200
+# log_interval = 100
 
 # fit(online_train_loader, online_test_loader, model, loss_fn, optimizer, scheduler, n_epochs, cuda, log_interval)
 
+# # 绘图
+# from utils.utils import extract_embeddings, plot_embeddings
+# # Set up data loaders
+# batch_size = 256
+# kwargs = {'num_workers': 1, 'pin_memory': True} if cuda else {}
+# train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True, **kwargs)
+# test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False, **kwargs)
+# train_embeddings_cl, train_labels_cl = extract_embeddings(train_loader, model)
+# plot_embeddings(train_embeddings_cl, train_labels_cl, classes, save_tag = 'train')
+# val_embeddings_cl, val_labels_cl = extract_embeddings(test_loader, model)
+# plot_embeddings(val_embeddings_cl, val_labels_cl, classes, save_tag = 'test')
 
 
-# ##############################################################
+##############################################################
 # ############################## Method 05:triplet selection
 
-# from data.datasets import BalancedBatchSampler
+# from data.cifar_datasets import BalancedBatchSampler
 
 # # We'll create mini batches by sampling labels that will be present in the mini batch and number of examples from each class
 # train_batch_sampler = BalancedBatchSampler(train_dataset, n_classes=10, n_samples=25)
@@ -293,7 +277,7 @@ plot_embeddings(val_embeddings_cl, val_labels_cl, save_tag = 'test')
 # from model.metrics import AverageNonzeroTripletsMetric, AccumulatedAccuracyMetric
 
 # margin = 1.
-# embedding_net = EmbeddingNet(3)
+# embedding_net = EmbeddingNet(in_channel=3, out_num=2)
 # model = embedding_net
 # if cuda:
     # model.cuda()
@@ -307,6 +291,285 @@ plot_embeddings(val_embeddings_cl, val_labels_cl, save_tag = 'test')
 # fit(online_train_loader, online_test_loader, model, loss_fn, optimizer, scheduler, n_epochs, cuda, log_interval, 
 # metrics=[AverageNonzeroTripletsMetric(), AccumulatedAccuracyMetric()])
 
+# # 绘图
+# from utils.utils import extract_embeddings, plot_embeddings
+# # Set up data loaders
+# batch_size = 256
+# kwargs = {'num_workers': 1, 'pin_memory': True} if cuda else {}
+# train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True, **kwargs)
+# test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False, **kwargs)
+# train_embeddings_cl, train_labels_cl = extract_embeddings(train_loader, model)
+# plot_embeddings(train_embeddings_cl, train_labels_cl, classes, save_tag = 'train')
+# val_embeddings_cl, val_labels_cl = extract_embeddings(test_loader, model)
+# plot_embeddings(val_embeddings_cl, val_labels_cl, classes, save_tag = 'test')
+
+##########################################################################
+#######################################Method06: Pretrained ResNet
+# # Set up data loaders
+# batch_size = 256
+# kwargs = {'num_workers': 1, 'pin_memory': True} if cuda else {}
+# train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True, **kwargs)
+# test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False, **kwargs)
+
+# # 预训练Resnet
+# from model import resnet
+# pretrain_dict = torch.load('model/resnet20_dict.pkl')
+# res_model = resnet.resnet20(num_features = 64, num_classes = 10)
+# res_model.load_state_dict(pretrain_dict)
+# print(res_model)
+
+# # 验证预训练模型
+# from utils.eval import validate
+# validate(test_loader, res_model.cuda(), nn.CrossEntropyLoss().cuda())
+# validate(train_loader, res_model.cuda(), nn.CrossEntropyLoss().cuda())
+
+# # #提取fc层中固定的参数
+# # features_num = res_model.module.linear.in_features
+# # print(features_num)
+# # #修改类别为2
+# # res_model.module.linear = nn.Linear(features_num, 2)
+
+# # 绘图, 原始Resnet提取的特征和softmax分类器不同
+# from utils.utils import extract_embeddings, plot_embeddings
+# # Set up data loaders
+# batch_size = 256
+# kwargs = {'num_workers': 1, 'pin_memory': True} if cuda else {}
+# train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True, **kwargs)
+# test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False, **kwargs)
+# train_embeddings_cl, train_labels_cl = extract_embeddings(train_loader, res_model)
+# plot_embeddings(train_embeddings_cl, train_labels_cl, classes, save_tag = 'train')
+# val_embeddings_cl, val_labels_cl = extract_embeddings(test_loader, res_model)
+# plot_embeddings(val_embeddings_cl, val_labels_cl, classes, save_tag = 'test')
+
+
+##############################################################################
+#######################################Method07: Train ResNet ################
+# Set up data loaders
+batch_size = 128
+kwargs = {'num_workers': 1, 'pin_memory': True} if cuda else {}
+train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True, **kwargs)
+test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False, **kwargs)
+
+# Set up the network and training parameters
+from model.metrics import AccumulatedAccuracyMetric
+from model.trainer import fit
+
+from model import resnet
+num_features = 2
+res_model = resnet.resnet20(3, num_features = num_features, num_classes = 10)
+print(res_model)
+
+res_model.cuda()
+loss_fn = nn.NLLLoss().cuda()
+lr = 1e-2
+optimizer = torch.optim.SGD(res_model.parameters(), lr, momentum=0.9, weight_decay=5e-4)   
+scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[100, 150])
+n_epochs = 200
+log_interval = 100                           
+fit(train_loader, test_loader, res_model, loss_fn, optimizer, scheduler, n_epochs, cuda, log_interval, metrics=[AccumulatedAccuracyMetric()])
+
+# 绘图
+from utils.utils import extract_embeddings, plot_embeddings
+
+linearWeights = res_model.state_dict()['linear.weight'].cpu().numpy()
+# linearBias = res_model.state_dict()['linear.bias'].cpu().numpy()
+linearBias = None
+
+# Set up data loaders
+batch_size = 256
+kwargs = {'num_workers': 1, 'pin_memory': True} if cuda else {}
+train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True, **kwargs)
+test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False, **kwargs)
+train_embeddings_cl, train_labels_cl = extract_embeddings(train_loader, res_model)
+save_tag = 'test-mnist-resnet-' + str(num_features) + '-'
+plot_embeddings(train_embeddings_cl, train_labels_cl, linearWeights, linearBias, classes=classes, save_tag = save_tag)
+val_embeddings_cl, val_labels_cl = extract_embeddings(test_loader, res_model)
+save_tag = 'train-mnist-resnet-' + str(num_features) + '-'
+plot_embeddings(val_embeddings_cl, val_labels_cl, linearWeights, linearBias, classes=classes, save_tag = save_tag)
+
+# Save model
+torch.save(res_model.state_dict(), './model/cifar_resnet20_'+str(num_features)+'_dict.pkl')
+
+
+# ##########################################################################################                          
+# #################################### Method 08：Siamese Resnet  ##########################
+# from data.cifar_datasets import SiameseMNIST                           
+# siamese_train_dataset = SiameseMNIST(train_dataset) # Returns pairs of images and target same/different
+# siamese_test_dataset = SiameseMNIST(test_dataset)
+# batch_size = 128
+# kwargs = {'num_workers': 1, 'pin_memory': True} if cuda else {}
+# train_loader = torch.utils.data.DataLoader(siamese_train_dataset, batch_size=batch_size, shuffle=True, **kwargs)
+# test_loader = torch.utils.data.DataLoader(siamese_test_dataset, batch_size=batch_size, shuffle=False, **kwargs)
+
+# # Set up the network and training parameters
+# from model.cifar_networks import SiameseNet
+# from model.losses import ContrastiveLoss
+# from model.trainer import fit
+# from model import resnet
+# res_model = resnet.resnet20(num_features = 2, num_classes = 10)
+# print(res_model)
+# model = SiameseNet(res_model).cuda()
+# loss_fn = ContrastiveLoss(1.0).cuda()
+# lr = 1e-2
+# optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=1e-4)
+# scheduler = lr_scheduler.StepLR(optimizer, 8, gamma=0.1, last_epoch=-1)
+# # optimizer = torch.optim.SGD(model.parameters(), lr,
+                            # # momentum=0.9,
+                            # # weight_decay=5e-4)   
+# # scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer,
+                                                 # # milestones=[100, 150])
+# n_epochs = 30
+# log_interval = 100                           
+# fit(train_loader, test_loader, model, loss_fn, optimizer, scheduler, n_epochs, cuda, log_interval, metrics=[])
+
+# # 绘图
+# from utils.utils import extract_embeddings, plot_embeddings
+# # Set up data loaders
+# batch_size = 256
+# kwargs = {'num_workers': 1, 'pin_memory': True} if cuda else {}
+# train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True, **kwargs)
+# test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False, **kwargs)
+# train_embeddings_cl, train_labels_cl = extract_embeddings(train_loader, model)
+# plot_embeddings(train_embeddings_cl, train_labels_cl, classes, save_tag = 'train')
+# val_embeddings_cl, val_labels_cl = extract_embeddings(test_loader, model)
+# plot_embeddings(val_embeddings_cl, val_labels_cl, classes, save_tag = 'test')
+
+
+
+# ################################################################################
+# ######################################## Method 09：Triplet Resnet  ############
+# # Set up data loaders
+# from data.cifar_datasets import TripletMNIST
+# triplet_train_dataset = TripletMNIST(train_dataset) # Returns triplets of images
+# triplet_test_dataset = TripletMNIST(test_dataset)
+# batch_size = 128
+# kwargs = {'num_workers': 1, 'pin_memory': True} if cuda else {}
+# triplet_train_loader = torch.utils.data.DataLoader(triplet_train_dataset, batch_size=batch_size, shuffle=True, **kwargs)
+# triplet_test_loader = torch.utils.data.DataLoader(triplet_test_dataset, batch_size=batch_size, shuffle=False, **kwargs)
+
+# # Set up the network and training parameters
+# from model.cifar_networks import TripletNet
+# from model.losses import TripletLoss
+# from model.trainer import fit
+
+# from model import resnet
+# res_model = resnet.resnet20(num_features = 2, num_classes = 10)
+# print(res_model)
+# model = TripletNet(res_model).cuda()
+# loss_fn = TripletLoss(1.0).cuda()
+# lr = 1e-2
+# optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=1e-4)
+# scheduler = lr_scheduler.StepLR(optimizer, 20, gamma=0.1, last_epoch=-1)
+# n_epochs = 200
+# log_interval = 100
+# fit(triplet_train_loader, triplet_test_loader, model, loss_fn, optimizer, scheduler, n_epochs, cuda, log_interval)
+
+# # 绘图
+# from utils.utils import extract_embeddings, plot_embeddings
+# # Set up data loaders
+# batch_size = 256
+# kwargs = {'num_workers': 1, 'pin_memory': True} if cuda else {}
+# train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True, **kwargs)
+# test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False, **kwargs)
+# train_embeddings_cl, train_labels_cl = extract_embeddings(train_loader, model)
+# plot_embeddings(train_embeddings_cl, train_labels_cl, classes, save_tag = 'train')
+# val_embeddings_cl, val_labels_cl = extract_embeddings(test_loader, model)
+# plot_embeddings(val_embeddings_cl, val_labels_cl, classes, save_tag = 'test')
+
+
+
+# #######################################################################
+# ################################### Method 10: Resnet pair selection
+# from data.cifar_datasets import BalancedBatchSampler
+# # We'll create mini batches by sampling labels that will be present in the mini batch and number of examples from each class
+# train_batch_sampler = BalancedBatchSampler(train_dataset, n_classes=10, n_samples=25)
+# test_batch_sampler = BalancedBatchSampler(test_dataset, n_classes=10, n_samples=25)
+
+# kwargs = {'num_workers': 1, 'pin_memory': True} if cuda else {}
+# online_train_loader = torch.utils.data.DataLoader(train_dataset, batch_sampler=train_batch_sampler, **kwargs)
+# online_test_loader = torch.utils.data.DataLoader(test_dataset, batch_sampler=test_batch_sampler, **kwargs)
+
+# # Set up the network and training parameters
+# from model.trainer import fit
+# from model.cifar_networks import EmbeddingNet
+# from model.losses import OnlineContrastiveLoss
+# from utils.utils import AllPositivePairSelector, HardNegativePairSelector # Strategies for selecting pairs within a minibatch
+
+# from model import resnet
+# # res_model = resnet.resnet20(num_features = 2, num_classes = 10)
+
+# res_model = resnet.ResNet(resnet.BasicBlock, [3, 3, 3], 2)
+
+# model = res_model.cuda()
+# loss_fn = OnlineContrastiveLoss(1.0, HardNegativePairSelector())
+# lr = 1e-3
+# optimizer = optim.Adam(model.parameters(), lr=lr)
+# scheduler = lr_scheduler.StepLR(optimizer, 30, gamma=0.1, last_epoch=-1)
+# n_epochs = 50
+# log_interval = 100
+
+# fit(online_train_loader, online_test_loader, model, loss_fn, optimizer, scheduler, n_epochs, cuda, log_interval)
+
+# # 绘图
+# from utils.utils import extract_embeddings, plot_embeddings
+# # Set up data loaders
+# batch_size = 256
+# kwargs = {'num_workers': 1, 'pin_memory': True} if cuda else {}
+# train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True, **kwargs)
+# test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False, **kwargs)
+# train_embeddings_cl, train_labels_cl = extract_embeddings(train_loader, model)
+# plot_embeddings(train_embeddings_cl, train_labels_cl, classes, save_tag = 'train')
+# val_embeddings_cl, val_labels_cl = extract_embeddings(test_loader, model)
+# plot_embeddings(val_embeddings_cl, val_labels_cl, classes, save_tag = 'test')
+
+
+# ######################################################################
+# ############################## Method 11: Resnet triplet selection
+# from data.cifar_datasets import BalancedBatchSampler
+# # We'll create mini batches by sampling labels that will be present in the mini batch and number of examples from each class
+# train_batch_sampler = BalancedBatchSampler(train_dataset, n_classes=10, n_samples=25)
+# test_batch_sampler = BalancedBatchSampler(test_dataset, n_classes=10, n_samples=25)
+
+# kwargs = {'num_workers': 1, 'pin_memory': True} if cuda else {}
+# online_train_loader = torch.utils.data.DataLoader(train_dataset, batch_sampler=train_batch_sampler, **kwargs)
+# online_test_loader = torch.utils.data.DataLoader(test_dataset, batch_sampler=test_batch_sampler, **kwargs)
+
+# # Set up the network and training parameters
+# from model.trainer import fit
+# from model.cifar_networks import EmbeddingNet
+# from model.losses import OnlineTripletLoss
+# # Strategies for selecting triplets within a minibatch
+# from utils.utils import AllTripletSelector,HardestNegativeTripletSelector, RandomNegativeTripletSelector, SemihardNegativeTripletSelector 
+# from model.metrics import AverageNonzeroTripletsMetric
+
+# from model import resnet
+# # res_model = resnet.resnet20(num_features = 2, num_classes = 10)
+# res_model = resnet.ResNet(resnet.BasicBlock, [3, 3, 3], 2)
+# model = res_model.cuda()
+# loss_fn = OnlineTripletLoss(1.0, HardestNegativeTripletSelector(1.0))
+# lr = 1e-3
+# optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=1e-4)
+# scheduler = lr_scheduler.StepLR(optimizer, 30, gamma=0.1, last_epoch=-1)
+# n_epochs = 500
+# log_interval = 50
+
+# fit(online_train_loader, online_test_loader, model, loss_fn, optimizer, scheduler, n_epochs, cuda, log_interval, 
+# metrics=[AverageNonzeroTripletsMetric()])
+
+# # 绘图
+# from utils.utils import extract_embeddings, plot_embeddings
+# # Set up data loaders
+# batch_size = 256
+# kwargs = {'num_workers': 1, 'pin_memory': True} if cuda else {}
+# train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True, **kwargs)
+# test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False, **kwargs)
+# train_embeddings_cl, train_labels_cl = extract_embeddings(train_loader, model)
+# plot_embeddings(train_embeddings_cl, train_labels_cl, classes, save_tag = 'train')
+# val_embeddings_cl, val_labels_cl = extract_embeddings(test_loader, model)
+# plot_embeddings(val_embeddings_cl, val_labels_cl, classes, save_tag = 'test')
+
+# # Save model
+# torch.save(model.state_dict(), './model/triplet_selection_dict.pkl')
 
 
 # ##############################################################
