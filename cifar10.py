@@ -381,14 +381,14 @@ kwargs = {'num_workers': 1, 'pin_memory': True} if cuda else {}
 train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True, **kwargs)
 test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False, **kwargs)
 train_embeddings_cl, train_labels_cl = extract_embeddings(train_loader, res_model)
-save_tag = 'test-mnist-resnet-' + str(num_features) + '-'
+save_tag = './experiment/test-cifar-resnet-' + str(num_features) + '-'
 plot_embeddings(train_embeddings_cl, train_labels_cl, linearWeights, linearBias, classes=classes, save_tag = save_tag)
 val_embeddings_cl, val_labels_cl = extract_embeddings(test_loader, res_model)
-save_tag = 'train-mnist-resnet-' + str(num_features) + '-'
+save_tag = './experiment/train-cifar-resnet-' + str(num_features) + '-'
 plot_embeddings(val_embeddings_cl, val_labels_cl, linearWeights, linearBias, classes=classes, save_tag = save_tag)
 
 # Save model
-torch.save(res_model.state_dict(), './model/cifar_resnet20_'+str(num_features)+'_dict.pkl')
+torch.save(res_model.state_dict(), './experiment/cifar_resnet_'+str(num_features)+'_dict.pkl')
 
 
 # ##########################################################################################                          

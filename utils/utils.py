@@ -216,10 +216,8 @@ def plot_embeddings(embeddings, targets, W, b, classes, save_tag = 'train', xlim
         x = np.linspace(-3,3)
         if b is None:
             y = -1.0*(W[i][0]*x)/W[i][1]
-            save_tag = save_tag + 'withoutB'
         else:
             y = -1.0*(W[i][0]*x+b[i])/W[i][1]
-            save_tag = save_tag + 'withB'
         plt.plot(y, x, alpha=0.7, color=colors[i])
     plt.scatter(0, 0, color='red')
     if xlim:
@@ -227,6 +225,10 @@ def plot_embeddings(embeddings, targets, W, b, classes, save_tag = 'train', xlim
     if ylim:
         plt.ylim(ylim[0], ylim[1])
     plt.legend(classes)
+    if b is None:
+        save_tag = save_tag + 'withoutB'
+    else:
+        save_tag = save_tag + 'withB'
     plt.savefig(save_tag+'.jpg')
     plt.close('all')
 
